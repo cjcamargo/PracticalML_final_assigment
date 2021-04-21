@@ -79,3 +79,31 @@ plot(cmRF$table, col = cmRF$byClass,
 
 
 ```
+
+We can conclude here that the model has a high overall accuracy and its a very good option to use as a final model but first we have to train another model to compare, so a gbm model is trained.
+
+## Training Random Forest model
+
+```{r gbm, echo=TRUE}
+trainControlGBM <- trainControl(method = "repeatedcv", number = 2, repeats = 1)
+modGBM  <- train(classe ~ ., data=train_1, method = "gbm",
+                    trControl = trainControlGBM, verbose = FALSE)
+summary(modGBM$finalModel)
+
+predictGBM <- predict(modGBM, newdata=test_1)
+cmGBM <- confusionMatrix(predictGBM, test_1$classe)
+cmGBM
+
+plot(cmGBM$table, col = cmGBM$byClass, 
+     main = paste("GBM Accuracy:", round(cmGBM$overall['Accuracy'], 4)))
+
+```
+
+We see that gbm has also a really good overall accuracy: `r round(cmGBM$overall['Accuracy'], 4)`, but random forest y slightly higher: `r round(cmRF$overall['Accuracy'], 4)`  so we will use that model to predict the assigment quiz
+
+## Quiz prediction
+```{r quiz, echo=TRUE}
+
+Quiz <- predict(modRF, newdata=test_0)
+Quiz
+```
