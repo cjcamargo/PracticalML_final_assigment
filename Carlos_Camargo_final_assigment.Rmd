@@ -1,0 +1,81 @@
+---
+title: "ML final assigment"
+author: "Carlos J Camargo"
+date: "20/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Final assigment
+
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+##Libraries
+```{r lib}
+library(caret)
+library(rpart.plot)
+library(rpart)
+library(gbm)
+library(corrplot)
+```
+
+## Reading and cleaning data 
+
+You can also embed plots, for example:
+
+```{r read, echo=TRUE,include=TRUE}
+#Reading from URL
+train_0 <- read.csv(url("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"),stringsAsFactors = T)
+test_0 <- read.csv(url( "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"),stringsAsFactors = T)
+
+#Creating partitions from caret
+set.seed(1234)
+testind  <- createDataPartition(train_0$classe, p=0.7, list=FALSE)
+train_1 <- train_0[testind, ]
+test_1  <- train_0[-testind, ]
+#Droping near zero variance variables
+zvar <- nearZeroVar(train_1)
+train_1 <- train_1[, -zvar]
+test_1  <- test_1[, -zvar]
+paste("eliminating zero variance variable we get this variable number:",ncol(train_1),"for train")
+paste("eliminating zero variance variable we get this variable number:",ncol(test_1),"for test")
+#Cleaning NA
+elimnNA <- sapply(train_1, function(x) mean(is.na(x))) > 0.95
+train_1 <- train_1[, elimnNA==FALSE]
+test_1  <- test_1[, elimnNA==FALSE]
+paste("eliminating 95% NA variable we get this variable number:",ncol(test_1),"for test")
+paste("eliminating 95% NA variable we get this variable number:",ncol(train_1),"for train")
+#Droping identification variables
+train_1 <-train_1[, -c(1:5)]
+test_1  <- test_1[, -c(1:5)]
+paste("eliminating identification variables we get this variable number:",ncol(train_1),"for train")
+paste("eliminating identification variables we get this variable number:",ncol(test_1),"for test") 
+
+```
+
+We reduced de dataset from 160 variables to 54.
+
+## Training Random Forest model
+
+we will use a 2-fold cross-validation as train control for the model.
+
+```{r rf, echo=TRUE}
+#for reproducibility 
+set.seed(333)
+
+ trainControlRF<- trainControl(method="cv", number=2, verboseIter=T)
+modRF <- train(classe ~ ., data=train_1, method="rf",
+                          trControl=trainControlRF)
+predRF <- predict(modRF, newdata=test_1)
+cmRF <- confusionMatrix(predRF, test_1$classe)
+cmRF
+
+plot(cmRF$table, col = cmRF$byClass, 
+     main = paste("Random Forest Accuracy: ",
+                  round(cmRF$overall['Accuracy'], 4)))
+
+
+```
